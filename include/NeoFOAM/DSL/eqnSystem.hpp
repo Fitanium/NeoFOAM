@@ -28,35 +28,48 @@ namespace NeoFOAM::DSL
 
 template<typename ValueType>
 
+/* @class EqnTermMixin
+ * @brief A class to represent an Equation in NeoFOAMs DSL
+ *
+ * @ingroup DSL
+ */
 class EqnSystem
 {
+
+private:
+
+    /* @brief helper function to simplify the common pattern of
+     *applying a function to all (temporal,implicit,explicit) terms
+     **/
+    template<typename FunctionType>
+    void applyToTerms(FunctionType func)
+    {
+        auto forAllTerms = (func)[auto & terms]
+        {
+            for (auto& term : terms)
+            {
+                func(term);
+            }
+        }
+
+        forAllTerm(temporalTerms_);
+        forAllTerm(implicitTerms_);
+        forAllTerm(explicitTerms_);
+    }
+
 public:
 
-    EqnSystem(const NeoFOAM::Executor& exec, std::size_t nCells)
+    EqnSystem(const Executor& exec, std::size_t nCells)
         : exec_(exec), nCells_(nCells), termsEvaluated(false), temporalTerms_(), implicitTerms_(),
           explicitTerms_(), volumeField_(nullptr)
     {}
 
-    void build(NeoFOAM::Input input)
-    {
-        for (auto& eqnTerm : temporalTerms_)
-        {
-            eqnTerm.build(input);
-        }
-        for (auto& eqnTerm : implicitTerms_)
-        {
-            eqnTerm.build(input);
-        }
-        for (auto& eqnTerm : explicitTerms_)
-        {
-            eqnTerm.build(input);
-        }
-    }
+    void build(Input input) { applyToTerms((input)[auto term] {term.build(input)}); }
 
-    NeoFOAM::Field<NeoFOAM::scalar> explicitOperation()
+    Field<scalar> explicitOperation()
     {
-        NeoFOAM::Field<NeoFOAM::scalar> source(exec_, nCells_);
-        NeoFOAM::fill(source, 0.0);
+        Field<scalar> source(exec_, nCells_);
+        fill(source, 0.0);
         for (auto& eqnTerm : explicitTerms_)
         {
             eqnTerm.explicitOperation(source);
@@ -119,14 +132,16 @@ public:
                 *this, fvSchemesDict.subDict("ddtSchemes")
             );
             timeIntergrator.solve();
-
         }
         else
         {
-            // solve sparse matrix system
+            NF_ERROR_EXIT("Solving implicit systems is not implemented.");
         }
     }
 
+    /* Returns the total number of terms for an eqnSystem
+     *
+     */
     size_t size() const
     {
         return temporalTerms_.size() + implicitTerms_.size() + explicitTerms_.size();
@@ -145,11 +160,11 @@ public:
 
     std::vector<EqnTerm<ValueType>>& explicitTerms() { return explicitTerms_; }
 
-    const NeoFOAM::Executor& exec() const { return exec_; }
+    const Executor& exec() const { return exec_; }
 
     std::size_t nCells() const { return nCells_; }
 
-    fvcc::VolumeField<NeoFOAM::scalar>* volumeField()
+    fvcc::VolumeField<scalar>* volumeField()
     {
         if (temporalTerms_.size() == 0 && implicitTerms_.size() == 0)
         {
@@ -165,9 +180,6 @@ public:
         }
         return volumeField_;
     }
-
-    NeoFOAM::scalar dt = 0;
-    NeoFOAM::Dictionary fvSchemesDict;
 
 private:
 
@@ -201,13 +213,15 @@ private:
         return true;
     }
 
-    NeoFOAM::Executor exec_;
+    Executor exec_;
     std::size_t nCells_;
     bool termsEvaluated = false;
     std::vector<EqnTerm<ValueType>> temporalTerms_;
     std::vector<EqnTerm<ValueType>> implicitTerms_;
     std::vector<EqnTerm<ValueType>> explicitTerms_;
-    fvcc::VolumeField<NeoFOAM::scalar>* volumeField_;
+    fvcc::VolumeField<scalar>* volumeField_;
+    scalar dt = 0;
+    Dictionary fvSchemesDict;
 };
 
 
@@ -236,7 +250,7 @@ auto operator+(EqnTermType lhs, EqnTermType rhs)
 }
 
 template<typename ValueType>
-EqnSystem<ValueType> operator*(NeoFOAM::scalar scale, const EqnSystem<ValueType>& es)
+EqnSystem<ValueType> operator*(scalar scale, const EqnSystem<ValueType>& es)
 {
     EqnSystem<ValueType> results(es.exec(), es.nCells());
     for (const auto& eqnTerm : es.temporalTerms())
