@@ -14,7 +14,6 @@
 #include "NeoFOAM/core/error.hpp"
 #include "NeoFOAM/finiteVolume/cellCentred/timeIntegration/timeIntegration.hpp"
 
-
 namespace fvcc = NeoFOAM::finiteVolume::cellCentred;
 
 namespace NeoFOAM::finiteVolume::cellCentred
@@ -28,6 +27,7 @@ namespace NeoFOAM::DSL
 {
 
 template<typename ValueType>
+
 class EqnSystem
 {
 public:
@@ -119,6 +119,7 @@ public:
                 *this, fvSchemesDict.subDict("ddtSchemes")
             );
             timeIntergrator.solve();
+
         }
         else
         {
@@ -223,11 +224,6 @@ EqnSystem<ValueType> operator+(EqnSystem<ValueType> lhs, const EqnTermType& rhs)
     lhs.addTerm(rhs);
     return lhs;
 }
-
-
-// template<typename Term, typename ValueType>
-// concept ConvertibleToEqnTerm = std::convertible_to<Term, NeoFOAM::DSL::EqnTerm<ValueType>>;
-
 
 template<typename EqnTermType>
 auto operator+(EqnTermType lhs, EqnTermType rhs)

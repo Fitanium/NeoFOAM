@@ -23,7 +23,9 @@ namespace NeoFOAM::DSL
 template<typename T>
 concept HasTemporalTerm = requires(T t) {
     {
-        t.temporalOperation(std::declval<NeoFOAM::Field<NeoFOAM::scalar>&>())
+        t.temporalOperation(
+            std::declval<NeoFOAM::Field<NeoFOAM::scalar>&>(), std::declval<NeoFOAM::scalar>()
+        )
     } -> std::same_as<void>; // Adjust return type and arguments as needed
 };
 
