@@ -25,8 +25,6 @@ public:
 
     void grad(const VolumeField<scalar>& phi, VolumeField<Vector>& gradPhi);
 
-    VolumeField<Vector> grad(const VolumeField<scalar>& phi);
-
 private:
 
     SurfaceInterpolation surfaceInterpolation_;

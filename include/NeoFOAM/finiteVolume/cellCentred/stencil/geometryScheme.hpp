@@ -20,8 +20,6 @@ public:
 
     GeometrySchemeFactory(const UnstructuredMesh& mesh);
 
-    virtual ~GeometrySchemeFactory() {} // Virtual destructor
-
     virtual void updateWeights(const Executor& exec, SurfaceField<scalar>& weights) = 0;
 
     virtual void updateDeltaCoeffs(const Executor& exec, SurfaceField<scalar>& deltaCoeffs) = 0;
@@ -57,7 +55,6 @@ public:
 
     GeometryScheme(const UnstructuredMesh& mesh // will lookup the kernel
     );
-
 
     const SurfaceField<scalar>& weights() const;
 

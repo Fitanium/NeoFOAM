@@ -12,11 +12,9 @@
 #include "NeoFOAM/core/primitives/scalar.hpp"
 #include "NeoFOAM/fields/operations/operationsMacros.hpp"
 #include "NeoFOAM/fields/fieldTypeDefs.hpp"
-#include "NeoFOAM/fields/scalingField.hpp"
 
 namespace NeoFOAM
 {
-
 
 namespace detail
 {
@@ -79,8 +77,7 @@ public:
     {
         void* ptr = nullptr;
         std::visit(
-            [this, &ptr, size](const auto& exec)
-            { ptr = exec.alloc(size * sizeof(ValueType)); },
+            [this, &ptr, size](const auto& exec) { ptr = exec.alloc(size * sizeof(ValueType)); },
             exec_
         );
         data_ = static_cast<ValueType*>(ptr);

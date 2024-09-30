@@ -12,9 +12,12 @@ BasicGeometryScheme::BasicGeometryScheme(const UnstructuredMesh& mesh)
 
 void BasicGeometryScheme::updateWeights(const Executor& exec, SurfaceField<scalar>& weights)
 {
-    const auto [owner, neighbour] = spans(mesh_.faceOwner(), mesh_.faceNeighbour());
+    const auto owner = mesh_.faceOwner().span();
+    const auto neighbour = mesh_.faceNeighbour().span();
 
-    const auto [cf, c, sf] = spans(mesh_.faceCentres(), mesh_.cellCentres(), mesh_.faceAreas());
+    const auto cf = mesh_.faceCentres().span();
+    const auto c = mesh_.cellCentres().span();
+    const auto sf = mesh_.faceAreas().span();
 
     auto w = weights.internalField().span();
 
@@ -22,7 +25,11 @@ void BasicGeometryScheme::updateWeights(const Executor& exec, SurfaceField<scala
         exec,
         {0, mesh_.nInternalFaces()},
         KOKKOS_LAMBDA(const size_t facei) {
-            // stabelizes the scheme for poor meshes --> mag
+            // Note: mag in the dot-product.
+            // For all valid meshes, the non-orthogonality will be less than
+            // 90 deg and the dot-product will be positive.  For invalid
+            // meshes (d & s <= 0), this will stabilise the calculation
+            // but the result will be poor.
             scalar sfdOwn = mag(sf[facei] & (cf[facei] - c[owner[facei]]));
             scalar sfdNei = mag(sf[facei] & (c[neighbour[facei]] - cf[facei]));
 

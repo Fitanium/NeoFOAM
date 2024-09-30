@@ -4,6 +4,7 @@
 #include "NeoFOAM/core/dictionary.hpp"
 #include "NeoFOAM/core/error.hpp"
 #include <numeric>
+
 namespace NeoFOAM
 {
 void logOutRange(
@@ -35,8 +36,6 @@ Dictionary::Dictionary(const std::initializer_list<std::pair<std::string, std::a
         data_.insert(pair);
     }
 }
-
-bool Dictionary::empty() const { return data_.empty(); }
 
 void Dictionary::insert(const std::string& key, const std::any& value) { data_[key] = value; }
 

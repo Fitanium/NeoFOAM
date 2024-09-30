@@ -15,28 +15,20 @@
 
 namespace dsl = NeoFOAM::DSL;
 
-
-namespace NeoFOAM::DSL
-{
-template<typename ValueType>
-class EqnSystem;
-}
-
 namespace NeoFOAM::finiteVolume::cellCentred
 {
 
-template<typename ValueType>
 class TimeIntegrationFactory :
     public NeoFOAM::RuntimeSelectionFactory<
-        TimeIntegrationFactory<ValueType>,
-        Parameters<const dsl::EqnSystem<ValueType>&, const Dictionary&>>
+        TimeIntegrationFactory,
+        Parameters<const dsl::EqnSystem&, const Dictionary&>>
 {
 
 public:
 
     static std::string name() { return "timeIntegrationFactory"; }
 
-    TimeIntegrationFactory(const dsl::EqnSystem<ValueType>& eqnSystem, const Dictionary& dict)
+    TimeIntegrationFactory(const dsl::EqnSystem& eqnSystem, const Dictionary& dict)
         : eqnSystem_(eqnSystem), dict_(dict)
     {}
 
@@ -49,11 +41,10 @@ public:
 
 protected:
 
-    dsl::EqnSystem<ValueType> eqnSystem_;
+    dsl::EqnSystem eqnSystem_;
     const Dictionary& dict_;
 };
 
-template<typename ValueType>
 class TimeIntegration
 {
 
@@ -65,10 +56,10 @@ public:
     TimeIntegration(TimeIntegration&& timeIntegrate)
         : timeIntegrateStrategy_(std::move(timeIntegrate.timeIntegrateStrategy_)) {};
 
-    TimeIntegration(const dsl::EqnSystem<ValueType>& eqnSystem, const Dictionary& dict)
-        : timeIntegrateStrategy_(TimeIntegrationFactory<ValueType>::create(
-            dict.get<std::string>("type"), eqnSystem, dict
-        )) {};
+    TimeIntegration(const dsl::EqnSystem& eqnSystem, const Dictionary& dict)
+        : timeIntegrateStrategy_(
+            TimeIntegrationFactory::create(dict.get<std::string>("type"), eqnSystem, dict)
+        ) {};
 
 
     void solve() { timeIntegrateStrategy_->solve(); }
@@ -76,7 +67,7 @@ public:
 private:
 
 
-    std::unique_ptr<TimeIntegrationFactory<ValueType>> timeIntegrateStrategy_;
+    std::unique_ptr<TimeIntegrationFactory> timeIntegrateStrategy_;
 };
 
 
