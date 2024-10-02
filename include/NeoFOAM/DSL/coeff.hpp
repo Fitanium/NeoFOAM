@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2023 NeoFOAM authors
 #pragma once
 
-namespace NeoFOAM::dsl
+namespace NeoFOAM::DSL
 {
 
 /**

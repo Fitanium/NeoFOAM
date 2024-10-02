@@ -16,17 +16,11 @@
 
 namespace fvcc = NeoFOAM::finiteVolume::cellCentred;
 
-namespace NeoFOAM::finiteVolume::cellCentred
-{
-template<typename ValueType>
-class TimeIntegration;
-}
-
+// forward declaration
+// class fvcc::TimeIntegration;
 
 namespace NeoFOAM::DSL
 {
-
-template<typename ValueType>
 
 /* @class EqnTermMixin
  * @brief A class to represent an Equation in NeoFOAMs DSL
@@ -44,17 +38,17 @@ private:
     template<typename FunctionType>
     void applyToTerms(FunctionType func)
     {
-        auto forAllTerms = (func)[auto & terms]
+        auto forAllTerms = [func](auto& terms)
         {
             for (auto& term : terms)
             {
                 func(term);
             }
-        }
+        };
 
-        forAllTerm(temporalTerms_);
-        forAllTerm(implicitTerms_);
-        forAllTerm(explicitTerms_);
+        forAllTerms(temporalTerms_);
+        forAllTerms(implicitTerms_);
+        forAllTerms(explicitTerms_);
     }
 
 public:
@@ -64,7 +58,10 @@ public:
           explicitTerms_(), volumeField_(nullptr)
     {}
 
-    void build(Input input) { applyToTerms((input)[auto term] {term.build(input)}); }
+    void build(Input input)
+    {
+        applyToTerms([input](auto& term) { term.build(input); });
+    }
 
     Field<scalar> explicitOperation()
     {
@@ -77,23 +74,25 @@ public:
         return source;
     }
 
-    void addTerm(const EqnTerm<ValueType>& eqnTerm)
+    void addTerm(const EqnTerm& eqnTerm)
     {
         switch (eqnTerm.getType())
         {
-        case EqnTerm<ValueType>::Type::Temporal:
+        case EqnTerm::Type::Temporal:
             temporalTerms_.push_back(eqnTerm);
             break;
-        case EqnTerm<ValueType>::Type::Implicit:
+        case EqnTerm::Type::Implicit:
             implicitTerms_.push_back(eqnTerm);
             break;
-        case EqnTerm<ValueType>::Type::Explicit:
+        case EqnTerm::Type::Explicit:
             explicitTerms_.push_back(eqnTerm);
             break;
         }
     }
 
-    void addSystem(const EqnSystem<ValueType>& eqnSys)
+    scalar getDt() const { return dt_; }
+
+    void addSystem(const EqnSystem& eqnSys)
     {
         for (auto& eqnTerm : eqnSys.temporalTerms_)
         {
@@ -114,11 +113,11 @@ public:
         bool allTermsEvaluated = evaluated();
         if (!allTermsEvaluated)
         {
-            if (fvSchemesDict.empty())
+            if (fvSchemesDict_.empty())
             {
                 NF_ERROR_EXIT("No scheme dictionary provided.");
             }
-            build(fvSchemesDict);
+            build(fvSchemesDict_);
         }
 
         if (temporalTerms_.size() == 0 && implicitTerms_.size() == 0)
@@ -128,10 +127,11 @@ public:
         if (temporalTerms_.size() > 0)
         {
             // integrate equations in time
-            fvcc::TimeIntegration<ValueType> timeIntergrator(
-                *this, fvSchemesDict.subDict("ddtSchemes")
-            );
-            timeIntergrator.solve();
+            // FIXME
+            // fvcc::TimeIntegration timeIntergrator(
+            //     *this, fvSchemesDict_.subDict("ddtSchemes")
+            // );
+            // timeIntergrator.solve();
         }
         else
         {
@@ -148,17 +148,17 @@ public:
     }
 
     // getters
-    const std::vector<EqnTerm<ValueType>>& temporalTerms() const { return temporalTerms_; }
+    const std::vector<EqnTerm>& temporalTerms() const { return temporalTerms_; }
 
-    const std::vector<EqnTerm<ValueType>>& implicitTerms() const { return implicitTerms_; }
+    const std::vector<EqnTerm>& implicitTerms() const { return implicitTerms_; }
 
-    const std::vector<EqnTerm<ValueType>>& explicitTerms() const { return explicitTerms_; }
+    const std::vector<EqnTerm>& explicitTerms() const { return explicitTerms_; }
 
-    std::vector<EqnTerm<ValueType>>& temporalTerms() { return temporalTerms_; }
+    std::vector<EqnTerm>& temporalTerms() { return temporalTerms_; }
 
-    std::vector<EqnTerm<ValueType>>& implicitTerms() { return implicitTerms_; }
+    std::vector<EqnTerm>& implicitTerms() { return implicitTerms_; }
 
-    std::vector<EqnTerm<ValueType>>& explicitTerms() { return explicitTerms_; }
+    std::vector<EqnTerm>& explicitTerms() { return explicitTerms_; }
 
     const Executor& exec() const { return exec_; }
 
@@ -216,43 +216,38 @@ private:
     Executor exec_;
     std::size_t nCells_;
     bool termsEvaluated = false;
-    std::vector<EqnTerm<ValueType>> temporalTerms_;
-    std::vector<EqnTerm<ValueType>> implicitTerms_;
-    std::vector<EqnTerm<ValueType>> explicitTerms_;
+    std::vector<EqnTerm> temporalTerms_;
+    std::vector<EqnTerm> implicitTerms_;
+    std::vector<EqnTerm> explicitTerms_;
     fvcc::VolumeField<scalar>* volumeField_;
-    scalar dt = 0;
-    Dictionary fvSchemesDict;
+    scalar dt_ = 0;
+    Dictionary fvSchemesDict_;
 };
 
 
-template<typename ValueType>
-EqnSystem<ValueType> operator+(EqnSystem<ValueType> lhs, const EqnSystem<ValueType>& rhs)
+EqnSystem operator+(EqnSystem lhs, const EqnSystem& rhs)
 {
     lhs.addSystem(rhs);
     return lhs;
 }
 
-template<typename ValueType, typename EqnTermType>
-EqnSystem<ValueType> operator+(EqnSystem<ValueType> lhs, const EqnTermType& rhs)
+EqnSystem operator+(EqnSystem lhs, const EqnTerm& rhs)
 {
     lhs.addTerm(rhs);
     return lhs;
 }
 
-template<typename EqnTermType>
-auto operator+(EqnTermType lhs, EqnTermType rhs)
+auto operator+(EqnTerm lhs, EqnTerm rhs)
 {
-    using ValueType = typename EqnTermType::EqnTermValueType;
-    EqnSystem<ValueType> eqnSys(lhs.exec(), lhs.nCells());
+    EqnSystem eqnSys(lhs.exec(), lhs.nCells());
     eqnSys.addTerm(lhs);
     eqnSys.addTerm(rhs);
     return eqnSys;
 }
 
-template<typename ValueType>
-EqnSystem<ValueType> operator*(scalar scale, const EqnSystem<ValueType>& es)
+EqnSystem operator*(scalar scale, const EqnSystem& es)
 {
-    EqnSystem<ValueType> results(es.exec(), es.nCells());
+    EqnSystem results(es.exec(), es.nCells());
     for (const auto& eqnTerm : es.temporalTerms())
     {
         results.addTerm(scale * eqnTerm);
@@ -268,27 +263,23 @@ EqnSystem<ValueType> operator*(scalar scale, const EqnSystem<ValueType>& es)
     return results;
 }
 
-template<typename ValueType>
-EqnSystem<ValueType> operator-(EqnSystem<ValueType> lhs, const EqnSystem<ValueType>& rhs)
+EqnSystem operator-(EqnSystem lhs, const EqnSystem& rhs)
 {
     lhs.addSystem(-1.0 * rhs);
     return lhs;
 }
 
-template<typename ValueType, typename EqnTermType>
-EqnSystem<ValueType> operator-(EqnSystem<ValueType> lhs, const EqnTermType& rhs)
+EqnSystem operator-(EqnSystem lhs, const EqnTerm& rhs)
 {
     lhs.addTerm(-1.0 * rhs);
     return lhs;
 }
 
-template<typename EqnTermType>
-auto operator-(EqnTermType lhs, EqnTermType rhs)
+auto operator-(EqnTerm lhs, EqnTerm rhs)
 {
-    using ValueType = typename EqnTermType::EqnTermValueType;
-    EqnSystem<ValueType> eqnSys(lhs.exec(), lhs.nCells());
+    EqnSystem eqnSys(lhs.exec(), lhs.nCells());
     eqnSys.addTerm(lhs);
-    eqnSys.addTerm(-1.0 * EqnTerm<ValueType>(rhs));
+    eqnSys.addTerm(-1.0 * EqnTerm(rhs));
     return eqnSys;
 }
 
