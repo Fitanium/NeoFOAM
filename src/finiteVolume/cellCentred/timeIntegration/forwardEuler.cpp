@@ -20,7 +20,7 @@ ForwardEuler::ForwardEuler(const dsl::EqnSystem& eqnSystem, const Dictionary& di
 void ForwardEuler::solve()
 {
     std::cout << "Solving using Forward Euler" << std::endl;
-    scalar dt = eqnSystem_.dt;
+    scalar dt = eqnSystem_.getDt();
     fvcc::VolumeField<scalar>* refField = eqnSystem_.volumeField();
     // Field<scalar> Phi(eqnSystem_.exec(), eqnSystem_.nCells());
     // NeoFOAM::fill(Phi, 0.0);
@@ -31,13 +31,13 @@ void ForwardEuler::solve()
     //     eqnTerm.temporalOperation(Phi);
     // }
     // Phi += source*dt;
-    refField->internalField() -= source*dt;
+    refField->internalField() -= source * dt;
     refField->correctBoundaryConditions();
 
     // check if execturo is GPU
     if (std::holds_alternative<NeoFOAM::GPUExecutor>(eqnSystem_.exec()))
     {
-       Kokkos::fence();
+        Kokkos::fence();
     }
 }
 

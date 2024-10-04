@@ -33,7 +33,6 @@ void computeDiv(
     size_t nInternalFaces = mesh.nInternalFaces();
     const auto surfV = mesh.cellVolumes().span();
 
-
     // check if the executor is GPU
     if (std::holds_alternative<SerialExecutor>(exec))
     {
@@ -50,7 +49,6 @@ void computeDiv(
             scalar valueOwn = surfFaceFlux[i] * surfPhif[i];
             surfDivPhi[own] += valueOwn;
         }
-
 
         for (size_t celli = 0; celli < mesh.nCells(); celli++)
         {
@@ -98,7 +96,8 @@ void computeDiv(
     const auto exec = phi.exec();
     SurfaceField<scalar> phif(exec, mesh, createCalculatedBCs<scalar>(mesh));
     const auto surfFaceCells = mesh.boundaryMesh().faceCells().span();
-    surfInterp.interpolate(phif, faceFlux, phi);
+    // FIXME not implemented
+    // surfInterp.interpolate(phif, faceFlux, phi);
 
     auto surfDivPhi = divPhi.span();
 

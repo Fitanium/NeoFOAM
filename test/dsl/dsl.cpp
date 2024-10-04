@@ -64,7 +64,6 @@ public:
 
     dsl::EqnTerm::Type getType() const { return termType_; }
 
-
     const NeoFOAM::Executor& exec() const { return exec_; }
 
     const std::size_t nCells() const { return nCells_; }
@@ -79,8 +78,8 @@ public:
 
 NeoFOAM::scalar getField(const NeoFOAM::Field<NeoFOAM::scalar>& source)
 {
-    auto sourceField = source.copyToHost().span();
-    return sourceField[0];
+    auto sourceField = source.copyToHost();
+    return sourceField.span()[0];
 }
 
 TEST_CASE("DSL")
